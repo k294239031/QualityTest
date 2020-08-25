@@ -1,0 +1,123 @@
+clc
+clear
+close all
+trigger=1;                      %1imgBuffer图片  2单张图片
+
+%*********参数设置区域********%
+userParameter.filename='C:\Users\weikang1\Desktop\异常图收集\RGB_渐变_破损\';
+userParameter.GlobalThreshold=0.65;              %全局误差超过80%记为错图
+userParameter.LocalThreshold=0.9;               %局部误差超过55%记为错图
+userParameter.numEvaluate=1;                    %设置n张图记为正确参考图
+userParameter.numSceneChange=4;                 %设置连续n张图错误记为场景改变(必须小于numEvaluate)
+userParameter.detectWindowSize=0.7;             %设置局部探测的窗口大小，范围0-1
+userParameter.fixedTimeRefresh=10;
+userParameter.normalImgNum=0;
+
+%**********参数声明*********%
+imgBuffer.number1=[];                           %声明空间
+%normalImgInfo=0;                                %声明空间
+
+userParameter.bufferCount=1;                    %计数
+userParameter.bufferTrigger=1;                  %存图开关
+userParameter.totalImgNum=0;                    %图片总数
+errorInfo.totalNum=0;
+errorInfo.continuesNum=0;
+
+
+
+%*****************************1.Buffer部分
+path=dir(fullfile(userParameter.filename,'*.jpg'));
+
+normalImgInfo.R=0;
+normalImgInfo.point_R=[0 0 0 0 0];
+
+if trigger==1
+    loop=size(path);
+    for i=1:loop
+        %读图
+        
+        try
+        img.Global = imread([userParameter.filename '\' path(i).name]);
+        userParameter.totalImgNum=userParameter.totalImgNum+1;
+        catch
+            a='打开失败'
+            path(i).name
+            continue
+        end
+        img.Global = rgb2hsl(img.Global);
+        img.Global([2 1],:)=img.Global([1 2],:);
+        %img.Global=rgb2gray(img.Global);
+        %img.Global=histeq(img.Global);
+        %获取图片缓存和信息
+        [imgBuffer,userParameter,normalImgInfo,errorInfo] = ...
+            getImgBuffer(img.Global,userParameter,imgBuffer,normalImgInfo,errorInfo);
+        %获取单张图片信息
+        %[imgInfo] = getImageInfo(img.Global,userParameter);
+        
+        y(i)=normalImgInfo.R;
+        %y1(i)=imgInfo.R;
+        
+    end
+    figure
+    plot(1:size(y,2),y);
+    hold on
+    plot(1:size(y1,2),y1,'r');
+    plot(1:size(y,2),y1-y,'r');
+    
+    %*****************************2.单张图统计
+elseif trigger==2
+    name='00001.jpg';
+    filename=[userParameter.filename ...
+        name];
+    temp=imread(filename);
+    [imgInfo] = getImageInfo(temp,userParameter);
+    
+    
+    figure;
+    subplot(1,4,1);
+    imshow(temp);
+    text(100,-150,'原图');
+    subplot(1,4,2);
+    imshow(temp(:,:,1));
+    text(0,-350,'R通道');
+    text(0,-250,'全图灰度统计:');
+    text(0,-150,num2str(imgInfo.R));
+    for i=1:5
+        rectangle('Position',[imgInfo.point(i,1),imgInfo.point(i,2),...
+            (imgInfo.point(i,3)-imgInfo.point(i,1)),(imgInfo.point(i,4)-imgInfo.point(i,2))],...
+            'EdgeColor','r','LineWidth',3)
+    end
+    text(0,(size(temp,1)+100),num2str(imgInfo.point_R(1)));
+    text(0,(size(temp,1)+150),num2str(imgInfo.point_R(2)));
+    text(0,(size(temp,1)+200),num2str(imgInfo.point_R(3)));
+    text(0,(size(temp,1)+250),num2str(imgInfo.point_R(4)));
+    text(0,(size(temp,1)+300),num2str(imgInfo.point_R(5)));
+    imgInfo.point_R
+    sprintf(['图片' name ',R/G/B=' num2str(imgInfo.R) '/' num2str(imgInfo.G) '/' num2str(imgInfo.B)])
+    subplot(1,4,3);
+    imshow(temp(:,:,2));
+    text(0,-350,'G通道');
+    text(0,-250,'全图灰度统计:');
+    text(0,-150,num2str(imgInfo.G));
+    subplot(1,4,4);
+    imshow(temp(:,:,3));
+    text(0,-350,'B通道');
+    text(0,-250,'全图灰度统计:');
+    text(0,-150,num2str(imgInfo.B));
+    
+    
+    %*****************************3.单张图统计
+elseif trigger==3
+    name='00001.jpg';
+    filename=[userParameter.filename ...
+        name];
+    temp=imread(filename);
+    %[imgInfo] = getImageInfo(temp,userParameter);
+    
+    subplot(1,2,1);
+    imshow(temp);
+    HSV = rgb2hsv(temp);
+    subplot(1,2,2);
+    imshow(HSV);
+    
+end
