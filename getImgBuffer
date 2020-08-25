@@ -1,0 +1,38 @@
+function [imgBuffer,userParameter,normalImgInfo,errorInfo] = getImgBuffer(img,userParameter,imgBuffer,normalImgInfo,errorInfo)
+%将一定数量的图片信息记为“正常”图片写入内存，传给getNormalImgInfo
+%定时刷新/强制刷新（连续全局错误/连续局部错位）
+%强制刷新获取imgBuffer有问题
+
+eval(['imgBuffer.number',num2str(userParameter.bufferCount),'=img;'])
+
+% eval(['imshow(imgBuffer.number',num2str(userParameter.bufferCount),');'])
+% title(['图片编号为' num2str(userParameter.totalImgNum)]);
+
+%****图片超过容量，立刻循环存储
+userParameter.bufferCount=userParameter.bufferCount+1;
+if userParameter.bufferCount>userParameter.numEvaluate
+    userParameter.bufferCount=1;
+end
+%****
+
+if (userParameter.fixedTimeRefresh==0)...
+        &&(length(fieldnames(imgBuffer))==userParameter.numEvaluate)            %0则不再获取新imgBuffer,直接返回函数
+    return
+end
+if (rem(userParameter.normalImgNum,userParameter.fixedTimeRefresh))==0     %每隔n张正常图强制更新图片信息
+    userParameter.bufferTrigger=1;
+end    
+%当检测图片数量足够时，再检测场景渐变
+% if userParameter.totalImgNum>userParameter.numEvaluate
+%     [userParameter.bufferTrigger] = isSceneChange(errorInfo,userParameter,imgBuffer);
+% end
+
+%%当检测图片数量足够 且 缓存开关打开 时，再获取图片信息/获取后，关闭开关
+if (userParameter.totalImgNum>=userParameter.numEvaluate)&&(userParameter.bufferTrigger==1)
+    [normalImgInfo] = getNormalImgInfo(imgBuffer,userParameter);
+    %userParameter.bufferTrigger=0;
+else
+    normalImgInfo=normalImgInfo;
+end
+
+end
