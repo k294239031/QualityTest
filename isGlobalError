@@ -1,0 +1,31 @@
+function [bool,img] = isGlobalError(img,userParameter,normalImgInfo)
+%   对读取的图片进行全局的统计,用以找出黑图、灰图、颜色异常的情况
+%   bool=0为异常，bool=1为正常
+RR=img(:,:,1);
+R=mean(mean(RR));
+if(R>(normalImgInfo.R*(1+userParameter.GlobalThreshold))||R<(normalImgInfo.R*(1-userParameter.GlobalThreshold)))
+    bool=1;
+    return
+end
+G=img(:,:,2);
+G=mean(mean(G));
+if(G>(normalImgInfo.G*(1+userParameter.GlobalThreshold))||G<(normalImgInfo.G*(1-userParameter.GlobalThreshold)))
+    bool=1;
+    return
+end
+B=img(:,:,3);
+B=mean(mean(B));
+if(B>(normalImgInfo.B*(1+userParameter.GlobalThreshold))||B<(normalImgInfo.B*(1-userParameter.GlobalThreshold)))
+    bool=1;
+    return
+else
+    bool=0;
+    clear img;
+    for j=1:5
+        local=RR(normalImgInfo.point(j,2):...
+            normalImgInfo.point(j,4),...
+            normalImgInfo.point(j,1):...
+            normalImgInfo.point(j,3));
+        img(j)=mean(mean(local));
+    end
+end
