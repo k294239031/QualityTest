@@ -1,0 +1,12 @@
+function [bool] = isLocalError(img,userParameter,normalImgInfo)
+%对读取的图片进行局部的统计,用以找出图片错位的情况
+%   bool=0为异常，bool=1为正常
+for i=1:5
+    if (img(i)>normalImgInfo.point_R(i)*(1+userParameter.LocalThreshold))||...
+            (img(i)<normalImgInfo.point_R(i)*(1-userParameter.LocalThreshold))
+        bool=1;
+        return
+    end
+end
+bool=0;
+end
