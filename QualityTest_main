@@ -1,0 +1,112 @@
+%不能解决的情况：亮暗变化明显的情况（如：上下电）
+clc
+clear
+close all
+trigger=2;                      %1开启显示imgBuffer图片  2开启main
+
+%*********参数设置区域********%
+userParameter.filename='C:\Users\weikang1\Desktop\异常图收集\RGB_错位\';
+userParameter.GlobalThreshold=0.65;             %全局误差超过65%记为错图(普通图波动小于60%)
+userParameter.LocalThreshold=0.9;               %局部误差超过90%记为错图(普通图波动小于70%)
+userParameter.numEvaluate=4;                    %设置n张图记为正确参考图
+userParameter.numSceneChange=3;                 %设置连续n张图错误记为场景改变(必须小于numEvaluate)
+userParameter.detectWindowSize=0.7;             %设置局部探测的窗口大小，范围0-1
+userParameter.fixedTimeRefresh=20;              %0,表示缓存图不变（适用于背景不变，频繁的图片质量问题）
+                                                %n,表示每检测n张图，便更新imgBuffer，以适应环境变化
+
+
+%**********参数声明*********%
+imgBuffer.number1=[];                           %声明空间
+normalImgInfo=0;                                %声明空间
+
+userParameter.bufferCount=1;                    %计数
+userParameter.bufferTrigger=1;                  %存图开关
+userParameter.totalImgNum=0;                    %图片总数
+userParameter.normalImgNum=0;                   %正常图片数目
+errorInfo.totalNum=0;
+errorInfo.continuesNum=0;
+
+
+
+%*******main主函数*******%
+path=dir(fullfile(userParameter.filename,'*.jpg'));
+
+if trigger==1
+    for i=1:userParameter.numEvaluate
+        img.Global = imread([userParameter.filename '\' path(i).name]);
+        figure
+        imshow(img.Global)
+    end
+elseif trigger==2
+    for i=1:size(path)
+        tic
+        if i==9
+            i;
+        end
+        %********读图(错误图检测)
+        try
+            img.Global = imread([userParameter.filename '\' path(i).name]);
+            userParameter.totalImgNum=userParameter.totalImgNum+1;
+        catch
+            errorInfo.totalNum=errorInfo.totalNum+1;
+            a='打开失败'
+            path(i).name
+            continue
+        end
+        
+        %********获取正常图片缓存和正常图片信息
+        [imgBuffer,userParameter,normalImgInfo,errorInfo] = getImgBuffer(img.Global,userParameter,imgBuffer,normalImgInfo,errorInfo);
+        
+        %跳过图片不足的时候
+        if size(fieldnames(imgBuffer),1)==userParameter.numEvaluate
+            
+            %********全局判断
+            [errorInfo.bool,img.Local] = isGlobalError(img.Global,userParameter,normalImgInfo);
+            if (errorInfo.bool)
+                errorInfo.totalNum=errorInfo.totalNum+1;
+                errorInfo.continuesNum=errorInfo.continuesNum+1;
+                
+                %对错误图进行处理，删除当前存入imgBuffer的图
+                if userParameter.bufferCount==1
+                    userParameter.bufferCount=userParameter.numEvaluate;
+                else
+                    userParameter.bufferCount=userParameter.bufferCount-1;
+                end
+                
+                path(i).name
+                figure
+                imshow(img.Global)
+                title(['检测到全图错误，图片编号为' num2str(i)])
+                sprintf('检测到全图错误，图片编号为%d',i)
+                
+                continue
+            end
+            
+            %********局部信息判断
+            errorInfo.bool = isLocalError(img.Local,userParameter,normalImgInfo);
+            if errorInfo.bool
+                errorInfo.totalNum=errorInfo.totalNum+1;
+                errorInfo.continuesNum=errorInfo.continuesNum+1;
+                
+                %对错误图进行处理
+                if userParameter.bufferCount==1
+                    userParameter.bufferCount=userParameter.numEvaluate;
+                else
+                    userParameter.bufferCount=userParameter.bufferCount-1;
+                end
+                %                 path(i).name
+                figure
+                imshow(img.Global)
+                sprintf('检测到局部错误，图片编号为%d',i)
+                
+                %**********
+                
+                continue
+            end
+            
+            errorInfo.continuesNum=0;
+        end
+        userParameter.normalImgNum=userParameter.normalImgNum+1;
+        toc
+    end
+end
