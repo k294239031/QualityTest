@@ -1,0 +1,27 @@
+function [bool] = isSceneChange(errorInfo,userParameter,imgBuffer)
+%isSceneChange 用于检测环境是否发生改变
+%   此处显示详细说明
+if errorInfo.continuesNum>=userParameter.numSceneChange
+    bool=1;
+    errorInfo.continuesNum=0;
+    %******对检测到场景变换的n张图进行处理
+    for i=1:errorInfo.continuesNum
+        temp=userParameter.bufferCount-i+1;
+        if (temp)<=0
+            temp=temp+userParameter.numEvaluate;
+        end
+        recycle(i)=temp;
+    end
+    num=fieldnames(imgBuffer);
+    for i=1:errorInfo.continuesNum
+        %figure
+        %imshow(imgBuffer.(num{recycle(i)}));
+        sprintf('检测到场景变化，刷新imgBuffer')
+    end
+    %******
+    
+else
+    bool=0;
+end
+end
+
