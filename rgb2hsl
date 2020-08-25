@@ -1,0 +1,67 @@
+function [img] = rgb2hsl(img)
+%RGB2HSL
+R=img(:,:,1);
+G=img(:,:,2);
+B=img(:,:,3);
+[m,n]=size(R);
+% 单值的RGB
+if m==1&&n==1
+    rgbMax=max([R,G,B]);
+    rgbMin=min([R,G,B]);
+    if rgbMax==rgbMin
+        H=0;
+    elseif rgbMax==R && G>=B
+        H=60*(G-B)/(rgbMax-rgbMin);
+    elseif rgbMax==R && G<B
+        H=60*(G-B)/(rgbMax-rgbMin)+360;
+    elseif rgbMax==G
+        H=60*(B-R)/(rgbMax-rgbMin)+120;
+    elseif rgbMax==B
+        H=60*(R-G)/(rgbMax-rgbMin)+240;
+    end
+    L=(rgbMax+rgbMin)/2;
+    if L==0 || rgbMax==rgbMin
+        S=0;
+    elseif L>0 && L<=0.5
+        S=(rgbMax-rgbMin)/(2*L);
+    elseif L>0.5
+        S=(rgbMax-rgbMin)/(2-2*L);
+    end
+    % 图片的RGB
+else
+    H=zeros(m,n);
+    S=zeros(m,n);
+    L=zeros(m,n);
+    for i=1:m
+        for j=1:n
+            r=R(i,j);
+            g=G(i,j);
+            b=B(i,j);
+            rgbMax=max([r,g,b]);
+            rgbMin=min([r,g,b]);
+            if rgbMax==rgbMin
+                H(i,j)=0;
+            elseif rgbMax==r && g>=b
+                H(i,j)=60*(g-b)/(rgbMax-rgbMin);
+            elseif rgbMax==r && g<b
+                H(i,j)=60*(g-b)/(rgbMax-rgbMin)+360;
+            elseif rgbMax==g
+                H(i,j)=60*(b-r)/(rgbMax-rgbMin)+120;
+            elseif rgbMax==b
+                H(i,j)=60*(r-g)/(rgbMax-rgbMin)+240;
+            end
+            L(i,j)=(rgbMax+rgbMin)/2;
+            if L(i,j)==0 || rgbMax==rgbMin
+                S(i,j)=0;
+            elseif 0<L(i,j) && L(i,j)<=0.5
+                S(i,j)=(rgbMax-rgbMin)/(2*L(i,j));
+            elseif L(i,j)>0.5
+                S(i,j)=(rgbMax-rgbMin)/(2-2*L(i,j));
+            end
+        end
+    end
+end
+img(:,:,1)=H;
+img(:,:,2)=S;
+img(:,:,3)=L;
+end
