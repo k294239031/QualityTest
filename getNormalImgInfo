@@ -1,0 +1,59 @@
+function [normalImgInfo] = getNormalImgInfo(imgBuffer,userParameter)
+%获取正常图片的信息
+%   此处显示详细说明
+if userParameter.bufferTrigger==1
+    normalImgInfo.R=0;
+    normalImgInfo.G=0;
+    normalImgInfo.B=0;
+    normalImgInfo.point_R=zeros(1,5);
+    
+    R=imgBuffer.number1(:,:,1);
+    a=size(R,2)/4;b=size(R,1)/4;
+    detectWindowWidth=userParameter.detectWindowSize*a;
+    detectWindowHeight=userParameter.detectWindowSize*b;
+    
+    point(1,:)=[a-detectWindowWidth/2,b-detectWindowHeight/2,...
+                a+detectWindowWidth/2,b+detectWindowHeight/2];
+    point(2,:)=[3*a-detectWindowWidth/2,b-detectWindowHeight/2,...
+                3*a+detectWindowWidth/2,b+detectWindowHeight/2];
+    point(3,:)=[2*a-detectWindowWidth/2,2*b-detectWindowHeight/2,...
+                2*a+detectWindowWidth/2,2*b+detectWindowHeight/2];
+    point(4,:)=[a-detectWindowWidth/2,3*b-detectWindowHeight/2,...
+                a+detectWindowWidth/2,3*b+detectWindowHeight/2];
+    point(5,:)=[3*a-detectWindowWidth/2,3*b-detectWindowHeight/2,...
+                3*a+detectWindowWidth/2,3*b+detectWindowHeight/2];
+    point=round(point);
+    
+    for i=1:userParameter.numEvaluate   
+        eval(['R=imgBuffer.number',num2str(i),'(:,:,1);'])
+%        eval(['G=imgBuffer.number',num2str(i),'(:,:,2);'])
+%        eval(['B=imgBuffer.number',num2str(i),'(:,:,3);'])
+        %*******计算5个局部区域统计数据
+        for j=1:5
+            local=R(point(j,2):point(j,4),point(j,1):point(j,3));
+            local=mean(mean(local));
+            normalImgInfo.point_R(j)=normalImgInfo.point_R(j)+local;
+        end
+        
+        %*******计算全图统计数据
+        R=mean(mean(R));
+%        G=mean(mean(G));
+%        B=mean(mean(B));
+        normalImgInfo.R=normalImgInfo.R+R;
+%        normalImgInfo.G=normalImgInfo.G+G;
+%        normalImgInfo.B=normalImgInfo.B+B;
+        
+    end
+    %获取全图统计数据
+    normalImgInfo.R=normalImgInfo.R/userParameter.numEvaluate;
+%    normalImgInfo.G=normalImgInfo.G/userParameter.numEvaluate;
+%    normalImgInfo.B=normalImgInfo.B/userParameter.numEvaluate;
+    %获取5个局部区域统计数据
+    for j=1:5
+        normalImgInfo.point_R(j)=normalImgInfo.point_R(j)/userParameter.numEvaluate;
+    end
+    
+    normalImgInfo.point=point;
+end
+end
+
