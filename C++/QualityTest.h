@@ -3,12 +3,17 @@
 
 #include <vector>
 #include <opencv2/opencv.hpp>
+
+//检测要求：1、前n（默认4）张图为正常图
+//			2、场景具有亮暗分明的特征
+//			3、上下电情况需要上下电周期的正常图
 class QualityTest
 {
 public:
 	cv::Mat img;
 	int point[5][4] = { 0 },i;
 	float point_R[5] = { 0 };
+	bool isSetError = 0;
 	struct UserParameter
 	{
 		//全局阈值不应小于0.6
@@ -16,13 +21,15 @@ public:
 		//局部阈值不应小于0.7
 		double localThreshold = 0.9;		//局部检测阈值，超过视为错图
 		//设置n张图为正确参考图存入imgBuffer
-		int numEvaluat = 4;				//imgBuffer缓存图片数量
+		int numEvaluat = 2;				//imgBuffer缓存图片数量
 		//设置判定连续n张图错误时，认为场景变化（该值需小于numEvaluat）
 		int numSceneChange = 3;			//用来判定环境改变（如开、关灯）的数量
 		//设置局部探测窗口的大小，范围为0-1
 		double detetWindowSize = 0.7;	//局部探测窗口的尺寸
-		//0，表示不更新normalImgInfo；n，表示每隔n张图更新normalImgInfo（该值需大于numEvaluat）
-		int fixedTimeRefresh = 20;	//每检测n张图，通过imgBuffer强制更新normalImgmgInfo
+		//0，表示不更新normalImgInfo；n，表示每隔n张图更新normalImgInfo（该值需大于numEvaluat，不宜过小）
+		int fixedTimeRefresh =100;	//每检测n张图，通过imgBuffer强制更新normalImgmgInfo
+		bool isLightLoop = 0;			//若测试环境为上下电情况则开启
+
 	}UserPara;	//需自定义设置的参数
 	struct NormalImgInfo
 	{
@@ -53,7 +60,7 @@ public:
 	QualityTest();
 	~QualityTest();
 
-	void setUserParameter(double& global, double& local, int& numE, int& numS, double& detectW);
+	void setUserParameter(double& global, double& local, int& numE, int& numS, double& detectW, bool& isLightLoop);
 	int main(cv::Mat);
 	void getImgBuffer();
 
