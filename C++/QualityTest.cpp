@@ -5,14 +5,18 @@
 
 QualityTest::QualityTest()
 {
-	
+	Err.imgBuffer.clear();
+	for (int num = 0; num < UserPara.numSceneChange; ++num) {
+		Err.imgBuffer.push_back(cv::Mat::zeros(1, 1, CV_8UC1));
+	}
+	Err.bufferCount = Err.imgBuffer.begin();
 }
 QualityTest::~QualityTest()
 {
 
 }
 
-void QualityTest::setUserParameter(double& global, double& local, int& numE, int& numS, double& detectW)
+void QualityTest::setUserParameter(double& global, double& local, int& numE, int& numS, double& detectW, bool& isLightLoop)
 {
 	UserPara.globalThreshold = global;		//全局检测阈值
 	if ((UserPara.globalThreshold > 0) && (UserPara.globalThreshold < 1))
@@ -27,27 +31,59 @@ void QualityTest::setUserParameter(double& global, double& local, int& numE, int
 				if ((UserPara.numSceneChange > 1) && (UserPara.localThreshold < UserPara.numEvaluat))
 				{
 					UserPara.detetWindowSize = detectW;
+					UserPara.isLightLoop = isLightLoop;
 					if ((UserPara.detetWindowSize <= 0) || (UserPara.detetWindowSize >= 1))
-						std::cout<< "detetWindowSize range is 0-1(example: 0.7)" <<std::endl;
+					{
+						std::cout << "detetWindowSize range is 0-1(example: 0.7)" << std::endl;
+						isSetError = 1;
+						return;
+					}
 				}
 				else
+				{
 					std::cout << "numSceneChange range is 2-numEvaluat(example: 3)" << std::endl;
+					isSetError = 1;
+					return;
+				}
 			}
 			else
+			{
 				std::cout << "numEvaluat should more than 1(example: 4)" << std::endl;
+				isSetError = 1;
+				return;
+			}
 		}
-		else		
+		else
+		{
 			std::cout << "localThreshold range is 0-1(example: 0.9)" << std::endl;
+			isSetError = 1;
+			return;
+		}
 	}
 	else
+	{
 		std::cout << "globalThreshold range is 0-1(example: 0.65)" << std::endl;
+		isSetError = 1;
+		return;
+	}
+	isSetError = 0;
 }
 //返回值 0表示图片无误
 //1表示出现全局错误（灰、黑图）
 //2表示出现局部错误（错位、缺失）
 int QualityTest::main(cv::Mat pic)
 {
+	if (isSetError)
+	{
+		std::cout << "Parameters setting error!" << std::endl;
+		return 1;
+	}
 	img = pic;
+	if (UserPara.isLightLoop)
+	{
+		cv::cvtColor(img, img, cv::COLOR_BGR2HSV);
+	}
+	
 	NormalInf.totalImgNum++;
 
 	getImgBuffer();
@@ -212,7 +248,7 @@ void QualityTest::getNormalImageInfo()
 			{
 				ROI = cv::Rect(point[j][0], point[j][1], dWW, dWH);
 
-				imgROI = img_channels[2](ROI);
+				imgROI = img_channels[0](ROI);
 				tempLocal = cv::mean(imgROI);
 				NormalInf.point_R[j] = NormalInf.point_R[j] + tempLocal[0];
 			}
@@ -265,7 +301,7 @@ bool QualityTest::isScenceChange()
 bool QualityTest::isGlobalError()
 {
 	cv::Scalar RGB_mean = cv::mean(img);
-	for (int i = 0; i < 3; i++) 
+	for (int i = 0; i <1 ; i++) 
 	{
 		if ((RGB_mean[i]>NormalInf.RGB[i]*(1+UserPara.globalThreshold)) 
 			|| (RGB_mean[i] < NormalInf.RGB[i] * (1 - UserPara.globalThreshold)))
@@ -284,7 +320,7 @@ bool QualityTest::isLocalError()
 	for (int i = 0; i < 5; ++i)
 	{
 		cv::Rect ROI = cv::Rect(point[i][0], point[i][1], point[i][2], point[i][3]);
-		cv::Mat imgROI = img_channels[2](ROI);
+		cv::Mat imgROI = img_channels[0](ROI);
 		cv::Scalar temp = cv::mean(imgROI);
 		img_point_R[i] = temp[0];
 		if (img_point_R[i] > NormalInf.point_R[i] * (1 + UserPara.localThreshold)
